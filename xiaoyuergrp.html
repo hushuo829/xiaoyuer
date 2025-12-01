@@ -1,0 +1,1208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>小鱼儿成长奖励系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script>
+        // Tailwind 配置
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#FF69B4', // 粉色主色调
+                        secondary: '#9370DB', // 紫色辅助色
+                        accent: '#FFD700', // 金色点缀
+                        light: '#FFE6F2', // 浅色背景
+                        dark: '#8B008B', // 深色文字
+                    },
+                    fontFamily: {
+                        cute: ['"Comic Sans MS"', '"Bubblegum Sans"', 'cursive'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .card-shadow {
+                box-shadow: 0 4px 15px rgba(255, 105, 180, 0.3);
+            }
+            .btn-hover {
+                transition: all 0.3s ease;
+            }
+            .btn-hover:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 20px rgba(255, 105, 180, 0.4);
+            }
+            .star-animation {
+                animation: starPulse 2s infinite;
+            }
+            @keyframes starPulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+                100% { transform: scale(1); }
+            }
+        }
+    </style>
+</head>
+<body class="bg-light min-h-screen font-cute text-dark">
+    <!-- 顶部导航 -->
+    <header class="bg-primary text-white py-4 px-6 shadow-md sticky top-0 z-50">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold flex items-center">
+                <i class="fa fa-star text-accent star-animation mr-2"></i>
+                小鱼儿成长奖励系统
+            </h1>
+            <div class="flex items-center gap-3">
+                <button id="shareBtn" class="bg-accent text-dark px-4 py-2 rounded-full btn-hover flex items-center">
+                    <i class="fa fa-share-alt mr-1"></i> 分享
+                </button>
+                <button id="resetBtn" class="bg-white text-primary px-4 py-2 rounded-full btn-hover flex items-center">
+                    <i class="fa fa-refresh mr-1"></i> 重置
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- 积分总览 -->
+        <section class="bg-white rounded-2xl p-6 mb-8 card-shadow">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <h2 class="text-[clamp(1.2rem,2vw,1.8rem)] font-bold mb-2">当前总积分</h2>
+                    <p class="text-gray-600">努力完成任务，赚取更多星星吧！</p>
+                </div>
+                <div class="bg-gradient-to-r from-primary to-secondary rounded-full px-8 py-4 flex items-center">
+                    <i class="fa fa-star text-accent text-[clamp(2rem,5vw,3.5rem)] mr-3 star-animation"></i>
+                    <span id="totalStars" class="text-white text-[clamp(2rem,5vw,3.5rem)] font-bold">0</span>
+                    <span class="text-white text-[clamp(1.5rem,3vw,2.5rem)] ml-2">☆</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 任务区域 -->
+        <section class="mb-12">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-primary flex items-center">
+                    <i class="fa fa-tasks mr-2"></i> 学习任务
+                </h2>
+                <button id="addMainTask" class="bg-secondary text-white px-4 py-2 rounded-full btn-hover flex items-center">
+                    <i class="fa fa-plus mr-1"></i> 添加主任务
+                </button>
+            </div>
+
+            <div id="tasksContainer" class="grid gap-6">
+                <!-- 任务卡片会通过JS动态生成 -->
+            </div>
+        </section>
+
+        <!-- 积分兑换区域 -->
+        <section class="mb-12">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-[clamp(1.5rem,3vw,2rem)] font-bold text-primary flex items-center">
+                    <i class="fa fa-gift mr-2"></i> 积分兑换
+                </h2>
+                <button id="addReward" class="bg-secondary text-white px-4 py-2 rounded-full btn-hover flex items-center">
+                    <i class="fa fa-plus mr-1"></i> 添加兑换品
+                </button>
+            </div>
+
+            <div id="rewardsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- 兑换卡片会通过JS动态生成 -->
+            </div>
+        </section>
+    </main>
+
+    <!-- 分享图模态框 -->
+    <div id="shareModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-primary">分享小鱼儿的成长成果</h3>
+                <button id="closeShareModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <label for="childName" class="block mb-2 font-bold">宝贝姓名：</label>
+                <input type="text" id="childName" value="小鱼儿" class="w-full px-4 py-2 border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+            </div>
+            <div id="shareImageContainer" class="bg-gradient-to-r from-primary to-secondary rounded-xl p-6 text-center mb-4">
+                <h3 class="text-white text-2xl mb-2" id="shareName">小鱼儿</h3>
+                <p class="text-white text-xl mb-4">成长奖励积分</p>
+                <div class="flex justify-center items-center">
+                    <i class="fa fa-star text-accent text-4xl mr-2"></i>
+                    <span id="shareStars" class="text-white text-5xl font-bold">0</span>
+                    <span class="text-white text-4xl ml-2">☆</span>
+                </div>
+                <p class="text-light mt-4">继续加油，未来可期！</p>
+            </div>
+            <div class="flex gap-3">
+                <button id="downloadShareImage" class="flex-1 bg-primary text-white px-4 py-2 rounded-full btn-hover flex items-center justify-center">
+                    <i class="fa fa-download mr-1"></i> 保存图片
+                </button>
+                <button id="shareImage" class="flex-1 bg-secondary text-white px-4 py-2 rounded-full btn-hover flex items-center justify-center">
+                    <i class="fa fa-share-alt mr-1"></i> 分享
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加/编辑任务模态框 -->
+    <div id="taskModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="taskModalTitle" class="text-xl font-bold text-primary">添加任务</h3>
+                <button id="closeTaskModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="taskForm">
+                <input type="hidden" id="taskId">
+                <input type="hidden" id="parentTaskId">
+                <input type="hidden" id="taskType" value="sub">
+                
+                <div class="mb-4">
+                    <label for="taskName" class="block mb-2 font-bold">任务名称：</label>
+                    <input type="text" id="taskName" required class="w-full px-4 py-2 border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="taskPoints" class="block mb-2 font-bold">完成积分：</label>
+                    <input type="number" id="taskPoints" min="0" value="1" required class="w-full px-4 py-2 border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="taskPenalty" class="block mb-2 font-bold">未完成扣分：</label>
+                    <input type="number" id="taskPenalty" min="0" value="1" required class="w-full px-4 py-2 border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="taskDescription" class="block mb-2 font-bold">任务说明（可选）：</label>
+                    <textarea id="taskDescription" rows="3" class="w-full px-4 py-2 border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+                </div>
+                
+                <button type="submit" class="w-full bg-primary text-white px-4 py-2 rounded-full btn-hover">保存任务</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 添加/编辑兑换品模态框 -->
+    <div id="rewardModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="rewardModalTitle" class="text-xl font-bold text-primary">添加兑换品</h3>
+                <button id="closeRewardModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fa fa-times text-xl"></i>
+                </button>
+            </div>
+            <form id="rewardForm">
+                <input type="hidden" id="rewardId">
+                
+                <div class="mb-4">
+                    <label for="rewardName" class="block mb-2 font-bold">兑换品名称：</label>
+                    <input type="text" id="rewardName" required class="w-full px-4 py-2 border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="rewardPoints" class="block mb-2 font-bold">所需积分：</label>
+                    <input type="number" id="rewardPoints" min="1" value="10" required class="w-full px-4 py-2 border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary">
+                </div>
+                
+                <div class="mb-4">
+                    <label for="rewardDescription" class="block mb-2 font-bold">兑换说明（可选）：</label>
+                    <textarea id="rewardDescription" rows="3" class="w-full px-4 py-2 border border-pink-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"></textarea>
+                </div>
+                
+                <button type="submit" class="w-full bg-primary text-white px-4 py-2 rounded-full btn-hover">保存兑换品</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // 初始任务数据
+        const initialTasks = [
+            {
+                id: 'task1',
+                name: '语文',
+                type: 'main',
+                points: 0,
+                subTasks: [
+                    {
+                        id: 'task1-1',
+                        name: '作业等次',
+                        points: 1,
+                        penalty: 1,
+                        description: 'A-及以上获得1颗☆，A+获得3颗☆，B以下扣1颗☆',
+                        completed: false
+                    },
+                    {
+                        id: 'task1-2',
+                        name: '测试',
+                        points: 1,
+                        penalty: 1,
+                        description: '90分及以上1颗☆；95分以上3颗☆；100分5颗☆；90分以下扣1颗；80分以下扣2颗；70分以下扣3颗；60分以下扣50颗',
+                        completed: false
+                    },
+                    {
+                        id: 'task1-3',
+                        name: '在校完成作业',
+                        points: 1,
+                        penalty: 0,
+                        description: '完成可获得1颗☆',
+                        completed: false
+                    },
+                    {
+                        id: 'task1-4',
+                        name: '大部分孩子都完成',
+                        points: 1,
+                        penalty: 1,
+                        description: '完成可获得1颗☆，未完成扣1颗☆',
+                        completed: false
+                    }
+                ]
+            },
+            {
+                id: 'task2',
+                name: '数学',
+                type: 'main',
+                points: 0,
+                subTasks: [
+                    {
+                        id: 'task2-1',
+                        name: '作业等次',
+                        points: 1,
+                        penalty: 1,
+                        description: 'A+，完成可获得1颗☆，未完成扣1颗☆',
+                        completed: false
+                    },
+                    {
+                        id: 'task2-2',
+                        name: '测试',
+                        points: 1,
+                        penalty: 1,
+                        description: '90分及以上1颗☆；95分以上3颗☆；100分5颗☆；90分以下扣1颗；80分以下扣2颗；70分以下扣3颗；60分以下扣50颗',
+                        completed: false
+                    },
+                    {
+                        id: 'task2-3',
+                        name: '在校完成作业',
+                        points: 1,
+                        penalty: 0,
+                        description: '完成可获得1颗☆',
+                        completed: false
+                    }
+                ]
+            },
+            {
+                id: 'task3',
+                name: '英语',
+                type: 'main',
+                points: 0,
+                subTasks: [
+                    {
+                        id: 'task3-1',
+                        name: '作业等次',
+                        points: 1,
+                        penalty: 1,
+                        description: 'A+，完成可获得1颗☆，未完成扣1颗☆',
+                        completed: false
+                    },
+                    {
+                        id: 'task3-2',
+                        name: '测试',
+                        points: 1,
+                        penalty: 1,
+                        description: '90分及以上1颗☆；95分以上3颗☆；100分5颗☆；90分以下扣1颗；80分以下扣2颗；70分以下扣3颗；60分以下扣50颗',
+                        completed: false
+                    },
+                    {
+                        id: 'task3-3',
+                        name: '在校完成作业',
+                        points: 1,
+                        penalty: 0,
+                        description: '完成可获得1颗☆',
+                        completed: false
+                    },
+                    {
+                        id: 'task3-4',
+                        name: '读课文背单词10分钟及以上',
+                        points: 1,
+                        penalty: 1,
+                        description: '完成可获得1颗☆，未完成扣1颗☆',
+                        completed: false
+                    }
+                ]
+            },
+            {
+                id: 'task4',
+                name: '练字',
+                type: 'main',
+                points: 0,
+                subTasks: [
+                    {
+                        id: 'task4-1',
+                        name: '认真练两行字',
+                        points: 1,
+                        penalty: 1,
+                        description: '完成可获得1颗☆，未完成扣1颗☆',
+                        completed: false
+                    }
+                ]
+            },
+            {
+                id: 'task5',
+                name: '其他交办任务',
+                type: 'main',
+                points: 0,
+                subTasks: [
+                    {
+                        id: 'task5-1',
+                        name: '完成交办任务',
+                        points: 1,
+                        penalty: 1,
+                        description: '完成可获得1颗☆，未完成扣1颗☆',
+                        completed: false
+                    }
+                ]
+            },
+            {
+                id: 'task6',
+                name: '运动',
+                type: 'main',
+                points: 0,
+                subTasks: [
+                    {
+                        id: 'task6-1',
+                        name: '完成运动任务',
+                        points: 1,
+                        penalty: 1,
+                        description: '完成可获得1颗☆，未完成扣1颗☆',
+                        completed: false
+                    }
+                ]
+            },
+            {
+                id: 'task7',
+                name: '整理',
+                type: 'main',
+                points: 0,
+                subTasks: [
+                    {
+                        id: 'task7-1',
+                        name: '每日保持书桌干净整洁',
+                        points: 1,
+                        penalty: 1,
+                        description: '保持书桌干净整洁无杂物，收拾好自己的物品，哪里拿的放回哪里。可获得1颗☆，未整理扣1颗☆',
+                        completed: false
+                    },
+                    {
+                        id: 'task7-2',
+                        name: '每日书包内书本分类收拾',
+                        points: 1,
+                        penalty: 1,
+                        description: '书本完好无损。可获得1颗☆，未整理扣1颗☆',
+                        completed: false
+                    }
+                ]
+            }
+        ];
+
+        // 初始兑换品数据
+        const initialRewards = [
+            {
+                id: 'reward1',
+                name: '卡通贴纸套装',
+                points: 5,
+                description: '精美卡通贴纸，装饰你的笔记本'
+            },
+            {
+                id: 'reward2',
+                name: '额外30分钟游戏时间',
+                points: 10,
+                description: '完成作业后可以多玩30分钟游戏'
+            },
+            {
+                id: 'reward3',
+                name: '周末公园游玩',
+                points: 20,
+                description: '周末全家一起去公园游玩'
+            },
+            {
+                id: 'reward4',
+                name: '心仪的故事书',
+                points: 30,
+                description: '可以选择一本自己喜欢的故事书'
+            },
+            {
+                id: 'reward5',
+                name: '生日派对',
+                points: 100,
+                description: '一个难忘的生日派对'
+            }
+        ];
+
+        // 数据管理
+        class DataManager {
+            constructor() {
+                this.tasks = JSON.parse(localStorage.getItem('fishTasks')) || initialTasks;
+                this.rewards = JSON.parse(localStorage.getItem('fishRewards')) || initialRewards;
+                this.totalStars = parseInt(localStorage.getItem('fishTotalStars')) || 0;
+            }
+
+            saveData() {
+                localStorage.setItem('fishTasks', JSON.stringify(this.tasks));
+                localStorage.setItem('fishRewards', JSON.stringify(this.rewards));
+                localStorage.setItem('fishTotalStars', this.totalStars);
+            }
+
+            getTaskById(taskId) {
+                for (const mainTask of this.tasks) {
+                    if (mainTask.id === taskId) {
+                        return { task: mainTask, isMain: true };
+                    }
+                    for (const subTask of mainTask.subTasks) {
+                        if (subTask.id === taskId) {
+                            return { task: subTask, isMain: false, parentTask: mainTask };
+                        }
+                    }
+                }
+                return null;
+            }
+
+            addMainTask(name) {
+                const newTask = {
+                    id: `task${Date.now()}`,
+                    name,
+                    type: 'main',
+                    points: 0,
+                    subTasks: []
+                };
+                this.tasks.push(newTask);
+                this.saveData();
+                return newTask;
+            }
+
+            addSubTask(parentTaskId, name, points, penalty, description) {
+                const parentTask = this.tasks.find(task => task.id === parentTaskId);
+                if (parentTask) {
+                    const newSubTask = {
+                        id: `subtask${Date.now()}`,
+                        name,
+                        points: parseInt(points) || 1,
+                        penalty: parseInt(penalty) || 1,
+                        description: description || '',
+                        completed: false
+                    };
+                    parentTask.subTasks.push(newSubTask);
+                    this.saveData();
+                    return newSubTask;
+                }
+                return null;
+            }
+
+            updateTask(taskId, updates) {
+                const taskData = this.getTaskById(taskId);
+                if (taskData) {
+                    Object.assign(taskData.task, updates);
+                    this.saveData();
+                    return taskData.task;
+                }
+                return null;
+            }
+
+            deleteTask(taskId) {
+                // 先检查是否是主任务
+                const mainTaskIndex = this.tasks.findIndex(task => task.id === taskId);
+                if (mainTaskIndex !== -1) {
+                    this.tasks.splice(mainTaskIndex, 1);
+                    this.saveData();
+                    return true;
+                }
+
+                // 检查是否是子任务
+                for (const mainTask of this.tasks) {
+                    const subTaskIndex = mainTask.subTasks.findIndex(subTask => subTask.id === taskId);
+                    if (subTaskIndex !== -1) {
+                        mainTask.subTasks.splice(subTaskIndex, 1);
+                        this.saveData();
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            completeTask(taskId, customPoints = null) {
+                const taskData = this.getTaskById(taskId);
+                if (taskData && !taskData.isMain) {
+                    const subTask = taskData.task;
+                    const points = customPoints !== null ? customPoints : subTask.points;
+                    
+                    // 更新总积分
+                    this.totalStars += points;
+                    
+                    // 更新任务状态
+                    subTask.completed = true;
+                    subTask.completedPoints = points;
+                    
+                    // 更新主任务积分
+                    taskData.parentTask.points += points;
+                    
+                    this.saveData();
+                    return { success: true, points };
+                }
+                return { success: false };
+            }
+
+            uncompleteTask(taskId, customPenalty = null) {
+                const taskData = this.getTaskById(taskId);
+                if (taskData && !taskData.isMain) {
+                    const subTask = taskData.task;
+                    const penalty = customPenalty !== null ? customPenalty : subTask.penalty;
+                    
+                    // 更新总积分
+                    this.totalStars = Math.max(0, this.totalStars - penalty);
+                    
+                    // 更新任务状态
+                    subTask.completed = false;
+                    delete subTask.completedPoints;
+                    
+                    // 更新主任务积分
+                    if (subTask.completedPoints) {
+                        taskData.parentTask.points = Math.max(0, taskData.parentTask.points - subTask.completedPoints);
+                    }
+                    
+                    this.saveData();
+                    return { success: true, penalty };
+                }
+                return { success: false };
+            }
+
+            addReward(name, points, description) {
+                const newReward = {
+                    id: `reward${Date.now()}`,
+                    name,
+                    points: parseInt(points) || 10,
+                    description: description || ''
+                };
+                this.rewards.push(newReward);
+                this.saveData();
+                return newReward;
+            }
+
+            updateReward(rewardId, updates) {
+                const reward = this.rewards.find(r => r.id === rewardId);
+                if (reward) {
+                    Object.assign(reward, updates);
+                    this.saveData();
+                    return reward;
+                }
+                return null;
+            }
+
+            deleteReward(rewardId) {
+                const index = this.rewards.findIndex(r => r.id === rewardId);
+                if (index !== -1) {
+                    this.rewards.splice(index, 1);
+                    this.saveData();
+                    return true;
+                }
+                return false;
+            }
+
+            redeemReward(rewardId) {
+                const reward = this.rewards.find(r => r.id === rewardId);
+                if (reward && this.totalStars >= reward.points) {
+                    this.totalStars -= reward.points;
+                    this.saveData();
+                    return { success: true, points: reward.points };
+                }
+                return { success: false, message: this.totalStars < reward.points ? '积分不足' : '兑换品不存在' };
+            }
+
+            resetAll() {
+                if (confirm('确定要重置所有数据吗？这将清除所有积分和任务完成状态！')) {
+                    this.tasks = JSON.parse(JSON.stringify(initialTasks));
+                    this.rewards = JSON.parse(JSON.stringify(initialRewards));
+                    this.totalStars = 0;
+                    this.saveData();
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        // 视图渲染器
+        class ViewRenderer {
+            constructor(dataManager) {
+                this.dataManager = dataManager;
+                this.tasksContainer = document.getElementById('tasksContainer');
+                this.rewardsContainer = document.getElementById('rewardsContainer');
+                this.totalStarsElement = document.getElementById('totalStars');
+            }
+
+            renderAll() {
+                this.renderTasks();
+                this.renderRewards();
+                this.updateTotalStars();
+            }
+
+            updateTotalStars() {
+                this.totalStarsElement.textContent = this.dataManager.totalStars;
+                // 更新分享图中的积分
+                document.getElementById('shareStars').textContent = this.dataManager.totalStars;
+            }
+
+            renderTasks() {
+                this.tasksContainer.innerHTML = '';
+                
+                this.dataManager.tasks.forEach(mainTask => {
+                    const taskCard = document.createElement('div');
+                    taskCard.className = 'bg-white rounded-2xl p-6 card-shadow';
+                    taskCard.dataset.taskId = mainTask.id;
+                    
+                    // 计算主任务总积分
+                    const mainTaskPoints = mainTask.subTasks.reduce((total, subTask) => {
+                        return total + (subTask.completedPoints || 0);
+                    }, 0);
+                    
+                    taskCard.innerHTML = `
+                        <div class="flex justify-between items-center mb-4">
+                            <div class="flex items-center">
+                                <h3 class="text-[clamp(1.2rem,2vw,1.5rem)] font-bold text-secondary">${mainTask.name}</h3>
+                                <span class="ml-3 bg-light text-primary px-3 py-1 rounded-full text-sm flex items-center">
+                                    <i class="fa fa-star text-accent mr-1"></i> ${mainTaskPoints} ☆
+                                </span>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="edit-main-task text-gray-500 hover:text-primary" title="编辑主任务">
+                                    <i class="fa fa-pencil"></i>
+                                </button>
+                                <button class="add-sub-task bg-primary text-white px-3 py-1 rounded-full text-sm btn-hover" title="添加子任务">
+                                    <i class="fa fa-plus mr-1"></i> 子任务
+                                </button>
+                                <button class="delete-task text-gray-500 hover:text-red-500" title="删除主任务">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="subtasks-container pl-4 border-l-2 border-pink-100">
+                            ${mainTask.subTasks.length === 0 ? 
+                                '<p class="text-gray-500 italic">暂无子任务，点击"添加子任务"按钮创建</p>' : 
+                                mainTask.subTasks.map(subTask => this.renderSubTask(subTask)).join('')
+                            }
+                        </div>
+                    `;
+                    
+                    this.tasksContainer.appendChild(taskCard);
+                    
+                    // 绑定主任务按钮事件
+                    taskCard.querySelector('.add-sub-task').addEventListener('click', () => {
+                        openSubTaskModal(null, mainTask.id);
+                    });
+                    
+                    taskCard.querySelector('.edit-main-task').addEventListener('click', () => {
+                        // 简单的主任务编辑（仅修改名称）
+                        const newName = prompt('修改主任务名称', mainTask.name);
+                        if (newName && newName.trim()) {
+                            this.dataManager.updateTask(mainTask.id, { name: newName.trim() });
+                            this.renderTasks();
+                        }
+                    });
+                    
+                    taskCard.querySelector('.delete-task').addEventListener('click', () => {
+                        if (confirm(`确定要删除"${mainTask.name}"及其所有子任务吗？`)) {
+                            this.dataManager.deleteTask(mainTask.id);
+                            this.renderTasks();
+                        }
+                    });
+                    
+                    // 绑定子任务事件
+                    taskCard.querySelectorAll('.subtask-item').forEach(subtaskEl => {
+                        this.bindSubTaskEvents(subtaskEl);
+                    });
+                });
+            }
+
+            renderSubTask(subTask) {
+                return `
+                    <div class="subtask-item mb-4 p-3 bg-light rounded-xl" data-task-id="${subTask.id}">
+                        <div class="flex justify-between items-start mb-2">
+                            <h4 class="font-bold text-dark">${subTask.name}</h4>
+                            <div class="flex gap-2">
+                                <button class="edit-sub-task text-gray-500 hover:text-primary" title="编辑子任务">
+                                    <i class="fa fa-pencil"></i>
+                                </button>
+                                <button class="delete-sub-task text-gray-500 hover:text-red-500" title="删除子任务">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        ${subTask.description ? `<p class="text-sm text-gray-600 mb-3">${subTask.description}</p>` : ''}
+                        <div class="flex flex-wrap gap-2 mb-3">
+                            <span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">
+                                完成 +${subTask.points}☆
+                            </span>
+                            ${subTask.penalty > 0 ? `
+                                <span class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs">
+                                    未完成 -${subTask.penalty}☆
+                                </span>
+                            ` : ''}
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="complete-task flex-1 bg-green-500 text-white px-3 py-2 rounded-full btn-hover text-sm">
+                                <i class="fa fa-check mr-1"></i> 完成
+                            </button>
+                            ${subTask.penalty > 0 ? `
+                                <button class="uncomplete-task flex-1 bg-red-500 text-white px-3 py-2 rounded-full btn-hover text-sm">
+                                    <i class="fa fa-times mr-1"></i> 未完成
+                                </button>
+                            ` : ''}
+                        </div>
+                        ${subTask.completed ? `
+                            <div class="mt-3 text-sm text-green-600 flex items-center">
+                                <i class="fa fa-check-circle mr-1"></i> 已完成，获得 ${subTask.completedPoints || subTask.points}☆
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }
+
+            bindSubTaskEvents(subtaskEl) {
+                const taskId = subtaskEl.dataset.taskId;
+                const taskData = this.dataManager.getTaskById(taskId);
+                if (!taskData) return;
+                
+                const subTask = taskData.task;
+                
+                // 完成任务按钮
+                subtaskEl.querySelector('.complete-task').addEventListener('click', () => {
+                    let points = subTask.points;
+                    
+                    // 对于测试任务，允许自定义分数
+                    if (subTask.name.includes('测试')) {
+                        const scoreInput = prompt(`
+                            请输入测试分数（0-100）：
+                            90分及以上：${subTask.points}颗☆
+                            95分以上：3颗☆
+                            100分：5颗☆
+                            90分以下：扣1颗☆
+                            80分以下：扣2颗☆
+                            70分以下：扣3颗☆
+                            60分以下：扣50颗☆
+                        `);
+                        
+                        const score = parseInt(scoreInput);
+                        if (isNaN(score) || score < 0 || score > 100) {
+                            alert('请输入有效的分数（0-100）');
+                            return;
+                        }
+                        
+                        if (score === 100) {
+                            points = 5;
+                        } else if (score > 95) {
+                            points = 3;
+                        } else if (score >= 90) {
+                            points = 1;
+                        } else if (score >= 80) {
+                            this.dataManager.uncompleteTask(taskId, 1);
+                            this.renderAll();
+                            showNotification(`测试分数${score}分，扣除1颗☆`, 'warning');
+                            return;
+                        } else if (score >= 70) {
+                            this.dataManager.uncompleteTask(taskId, 2);
+                            this.renderAll();
+                            showNotification(`测试分数${score}分，扣除2颗☆`, 'warning');
+                            return;
+                        } else if (score >= 60) {
+                            this.dataManager.uncompleteTask(taskId, 3);
+                            this.renderAll();
+                            showNotification(`测试分数${score}分，扣除3颗☆`, 'warning');
+                            return;
+                        } else {
+                            this.dataManager.uncompleteTask(taskId, 50);
+                            this.renderAll();
+                            showNotification(`测试分数${score}分，扣除50颗☆`, 'error');
+                            return;
+                        }
+                    } 
+                    // 对于作业等次任务，允许选择等次
+                    else if (subTask.name.includes('作业等次')) {
+                        const grade = prompt(`
+                            请输入作业等次：
+                            A+：3颗☆
+                            A-及以上：1颗☆
+                            B以下：扣1颗☆
+                        `, 'A');
+                        
+                        if (!grade) return;
+                        
+                        const gradeUpper = grade.toUpperCase();
+                        if (gradeUpper === 'A+') {
+                            points = 3;
+                        } else if (gradeUpper.startsWith('A')) {
+                            points = 1;
+                        } else {
+                            this.dataManager.uncompleteTask(taskId, 1);
+                            this.renderAll();
+                            showNotification(`作业等次${grade}，扣除1颗☆`, 'warning');
+                            return;
+                        }
+                    }
+                    
+                    this.dataManager.completeTask(taskId, points);
+                    this.renderAll();
+                    showNotification(`完成任务，获得${points}颗☆！`, 'success');
+                });
+                
+                // 未完成任务按钮
+                const uncompleteBtn = subtaskEl.querySelector('.uncomplete-task');
+                if (uncompleteBtn) {
+                    uncompleteBtn.addEventListener('click', () => {
+                        this.dataManager.uncompleteTask(taskId);
+                        this.renderAll();
+                        showNotification(`未完成任务，扣除${subTask.penalty}颗☆`, 'warning');
+                    });
+                }
+                
+                // 编辑子任务按钮
+                subtaskEl.querySelector('.edit-sub-task').addEventListener('click', () => {
+                    openSubTaskModal(subTask, taskData.parentTask.id);
+                });
+                
+                // 删除子任务按钮
+                subtaskEl.querySelector('.delete-sub-task').addEventListener('click', () => {
+                    if (confirm(`确定要删除子任务"${subTask.name}"吗？`)) {
+                        this.dataManager.deleteTask(taskId);
+                        this.renderTasks();
+                    }
+                });
+            }
+
+            renderRewards() {
+                this.rewardsContainer.innerHTML = '';
+                
+                this.dataManager.rewards.forEach(reward => {
+                    const rewardCard = document.createElement('div');
+                    rewardCard.className = 'bg-white rounded-2xl p-6 card-shadow hover:border-2 hover:border-primary transition-all';
+                    rewardCard.dataset.rewardId = reward.id;
+                    
+                    const isRedeemable = this.dataManager.totalStars >= reward.points;
+                    
+                    rewardCard.innerHTML = `
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-[clamp(1.2rem,2vw,1.5rem)] font-bold text-secondary">${reward.name}</h3>
+                            <div class="flex gap-2">
+                                <button class="edit-reward text-gray-500 hover:text-primary" title="编辑兑换品">
+                                    <i class="fa fa-pencil"></i>
+                                </button>
+                                <button class="delete-reward text-gray-500 hover:text-red-500" title="删除兑换品">
+                                    <i class="fa fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="flex items-center mb-3">
+                            <i class="fa fa-star text-accent text-xl mr-2"></i>
+                            <span class="text-lg font-bold">${reward.points} 颗☆</span>
+                        </div>
+                        ${reward.description ? `<p class="text-gray-600 mb-4 text-sm">${reward.description}</p>` : ''}
+                        <button class="redeem-reward w-full py-2 rounded-full btn-hover ${isRedeemable ? 'bg-secondary text-white' : 'bg-gray-300 text-gray-500 cursor-not-allowed'}" 
+                                ${!isRedeemable ? 'disabled' : ''}>
+                            ${isRedeemable ? '立即兑换' : '积分不足'}
+                        </button>
+                    `;
+                    
+                    this.rewardsContainer.appendChild(rewardCard);
+                    
+                    // 绑定兑换品按钮事件
+                    rewardCard.querySelector('.edit-reward').addEventListener('click', () => {
+                        openRewardModal(reward);
+                    });
+                    
+                    rewardCard.querySelector('.delete-reward').addEventListener('click', () => {
+                        if (confirm(`确定要删除兑换品"${reward.name}"吗？`)) {
+                            this.dataManager.deleteReward(reward.id);
+                            this.renderRewards();
+                        }
+                    });
+                    
+                    const redeemBtn = rewardCard.querySelector('.redeem-reward');
+                    if (isRedeemable) {
+                        redeemBtn.addEventListener('click', () => {
+                            if (confirm(`确定要兑换"${reward.name}"吗？需要消耗${reward.points}颗☆`)) {
+                                const result = this.dataManager.redeemReward(reward.id);
+                                if (result.success) {
+                                    this.renderAll();
+                                    showNotification(`成功兑换${reward.name}！`, 'success');
+                                } else {
+                                    showNotification(result.message, 'error');
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        // 工具函数
+        function showNotification(message, type = 'info') {
+            // 创建通知元素
+            const notification = document.createElement('div');
+            const bgColors = {
+                success: 'bg-green-500',
+                warning: 'bg-yellow-500',
+                error: 'bg-red-500',
+                info: 'bg-blue-500'
+            };
+            
+            const icons = {
+                success: 'fa-check-circle',
+                warning: 'fa-exclamation-triangle',
+                error: 'fa-times-circle',
+                info: 'fa-info-circle'
+            };
+            
+            notification.className = `${bgColors[type]} text-white px-4 py-3 rounded-lg shadow-lg flex items-center fixed top-4 right-4 z-50 transition-all transform translate-y-[-100px] opacity-0`;
+            notification.innerHTML = `
+                <i class="fa ${icons[type]} mr-2"></i>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // 显示通知
+            setTimeout(() => {
+                notification.classList.remove('translate-y-[-100px]', 'opacity-0');
+            }, 10);
+            
+            // 3秒后隐藏通知
+            setTimeout(() => {
+                notification.classList.add('translate-y-[-100px]', 'opacity-0');
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+
+        function openSubTaskModal(subTask = null, parentTaskId = null) {
+            const modal = document.getElementById('taskModal');
+            const title = document.getElementById('taskModalTitle');
+            const form = document.getElementById('taskForm');
+            
+            // 重置表单
+            form.reset();
+            
+            if (subTask) {
+                // 编辑模式
+                title.textContent = '编辑子任务';
+                document.getElementById('taskId').value = subTask.id;
+                document.getElementById('parentTaskId').value = parentTaskId;
+                document.getElementById('taskName').value = subTask.name;
+                document.getElementById('taskPoints').value = subTask.points;
+                document.getElementById('taskPenalty').value = subTask.penalty;
+                document.getElementById('taskDescription').value = subTask.description || '';
+            } else {
+                // 添加模式
+                title.textContent = '添加子任务';
+                document.getElementById('taskId').value = '';
+                document.getElementById('parentTaskId').value = parentTaskId;
+                document.getElementById('taskPoints').value = 1;
+                document.getElementById('taskPenalty').value = 1;
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        function openRewardModal(reward = null) {
+            const modal = document.getElementById('rewardModal');
+            const title = document.getElementById('rewardModalTitle');
+            const form = document.getElementById('rewardForm');
+            
+            // 重置表单
+            form.reset();
+            
+            if (reward) {
+                // 编辑模式
+                title.textContent = '编辑兑换品';
+                document.getElementById('rewardId').value = reward.id;
+                document.getElementById('rewardName').value = reward.name;
+                document.getElementById('rewardPoints').value = reward.points;
+                document.getElementById('rewardDescription').value = reward.description || '';
+            } else {
+                // 添加模式
+                title.textContent = '添加兑换品';
+                document.getElementById('rewardId').value = '';
+                document.getElementById('rewardPoints').value = 10;
+            }
+            
+            modal.classList.remove('hidden');
+        }
+
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', () => {
+            const dataManager = new DataManager();
+            const viewRenderer = new ViewRenderer(dataManager);
+            
+            // 初始渲染
+            viewRenderer.renderAll();
+            
+            // 事件监听 - 分享按钮
+            document.getElementById('shareBtn').addEventListener('click', () => {
+                const childName = document.getElementById('childName').value;
+                document.getElementById('shareName').textContent = childName;
+                document.getElementById('shareModal').classList.remove('hidden');
+            });
+            
+            // 事件监听 - 关闭分享模态框
+            document.getElementById('closeShareModal').addEventListener('click', () => {
+                document.getElementById('shareModal').classList.add('hidden');
+            });
+            
+            // 事件监听 - 下载分享图片
+            document.getElementById('downloadShareImage').addEventListener('click', () => {
+                // 这里可以使用html2canvas库来实现截图功能
+                // 为了简化，这里只显示提示
+                showNotification('图片保存功能将在完整版中提供', 'info');
+            });
+            
+            // 事件监听 - 分享图片
+            document.getElementById('shareImage').addEventListener('click', () => {
+                showNotification('分享功能已触发，可通过社交平台分享', 'success');
+                document.getElementById('shareModal').classList.add('hidden');
+            });
+            
+            // 事件监听 - 重置按钮
+            document.getElementById('resetBtn').addEventListener('click', () => {
+                if (dataManager.resetAll()) {
+                    viewRenderer.renderAll();
+                    showNotification('所有数据已重置', 'info');
+                }
+            });
+            
+            // 事件监听 - 添加主任务
+            document.getElementById('addMainTask').addEventListener('click', () => {
+                const taskName = prompt('请输入主任务名称', '新任务');
+                if (taskName && taskName.trim()) {
+                    dataManager.addMainTask(taskName.trim());
+                    viewRenderer.renderTasks();
+                    showNotification(`已添加主任务"${taskName}"`, 'success');
+                }
+            });
+            
+            // 事件监听 - 添加兑换品
+            document.getElementById('addReward').addEventListener('click', () => {
+                openRewardModal();
+            });
+            
+            // 事件监听 - 任务表单提交
+            document.getElementById('taskForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const taskId = document.getElementById('taskId').value;
+                const parentTaskId = document.getElementById('parentTaskId').value;
+                const taskName = document.getElementById('taskName').value.trim();
+                const taskPoints = document.getElementById('taskPoints').value;
+                const taskPenalty = document.getElementById('taskPenalty').value;
+                const taskDescription = document.getElementById('taskDescription').value.trim();
+                
+                if (!taskName) {
+                    alert('请输入任务名称');
+                    return;
+                }
+                
+                if (taskId) {
+                    // 编辑子任务
+                    dataManager.updateTask(taskId, {
+                        name: taskName,
+                        points: parseInt(taskPoints) || 1,
+                        penalty: parseInt(taskPenalty) || 1,
+                        description: taskDescription
+                    });
+                    showNotification('子任务已更新', 'success');
+                } else {
+                    // 添加子任务
+                    dataManager.addSubTask(parentTaskId, taskName, taskPoints, taskPenalty, taskDescription);
+                    showNotification(`已添加子任务"${taskName}"`, 'success');
+                }
+                
+                document.getElementById('taskModal').classList.add('hidden');
+                viewRenderer.renderTasks();
+            });
+            
+            // 事件监听 - 关闭任务模态框
+            document.getElementById('closeTaskModal').addEventListener('click', () => {
+                document.getElementById('taskModal').classList.add('hidden');
+            });
+            
+            // 事件监听 - 兑换品表单提交
+            document.getElementById('rewardForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                
+                const rewardId = document.getElementById('rewardId').value;
+                const rewardName = document.getElementById('rewardName').value.trim();
+                const rewardPoints = document.getElementById('rewardPoints').value;
+                const rewardDescription = document.getElementById('rewardDescription').value.trim();
+                
+                if (!rewardName) {
+                    alert('请输入兑换品名称');
+                    return;
+                }
+                
+                const points = parseInt(rewardPoints);
+                if (isNaN(points) || points < 1) {
+                    alert('请输入有效的所需积分（至少1）');
+                    return;
+                }
+                
+                if (rewardId) {
+                    // 编辑兑换品
+                    dataManager.updateReward(rewardId, {
+                        name: rewardName,
+                        points,
+                        description: rewardDescription
+                    });
+                    showNotification('兑换品已更新', 'success');
+                } else {
+                    // 添加兑换品
+                    dataManager.addReward(rewardName, points, rewardDescription);
+                    showNotification(`已添加兑换品"${rewardName}"`, 'success');
+                }
+                
+                document.getElementById('rewardModal').classList.add('hidden');
+                viewRenderer.renderRewards();
+            });
+            
+            // 事件监听 - 关闭兑换品模态框
+            document.getElementById('closeRewardModal').addEventListener('click', () => {
+                document.getElementById('rewardModal').classList.add('hidden');
+            });
+            
+            // 点击模态框外部关闭
+            window.addEventListener('click', (e) => {
+                const modals = [
+                    document.getElementById('shareModal'),
+                    document.getElementById('taskModal'),
+                    document.getElementById('rewardModal')
+                ];
+                
+                modals.forEach(modal => {
+                    if (e.target === modal) {
+                        modal.classList.add('hidden');
+                    }
+                });
+            });
+            
+            // 姓名输入同步
+            document.getElementById('childName').addEventListener('input', (e) => {
+                document.getElementById('shareName').textContent = e.target.value || '小鱼儿';
+            });
+        });
+    </script>
+</body>
+</html>
